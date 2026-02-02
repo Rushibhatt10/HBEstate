@@ -32,25 +32,47 @@ const AddProperty = () => {
   });
 
   useEffect(() => {
+    let isMounted = true;
     if (isEditMode) {
       const fetchProperty = async () => {
         try {
           const data = await getDocument('properties', id);
-          if (data) {
-            // Ensure images is always an array
-            const images = data.images || (data.image ? [data.image] : []);
-            setFormData({ ...data, images });
+          if (isMounted) {
+            if (data) {
+              // Ensure images is always an array
+              const images = data.images || (data.image ? [data.image] : []);
+              setFormData({ ...data, images });
+            } else {
+              setError('Property not found.');
+            }
           }
         } catch (err) {
-          setError('Failed to load property details.');
+          console.error(err);
+          if (isMounted) setError('Failed to load property details.');
         }
       };
       fetchProperty();
     }
+    return () => { isMounted = false; };
   }, [id, isEditMode]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
+    // Smart Map Link Handler
+    if (name === 'mapLink') {
+      let cleanValue = value;
+      // Parse iframe src if user pastes full embed code
+      if (cleanValue.includes('<iframe')) {
+        const srcMatch = cleanValue.match(/src="([^"]+)"/);
+        if (srcMatch && srcMatch[1]) {
+          cleanValue = srcMatch[1];
+        }
+      }
+      setFormData(prev => ({ ...prev, [name]: cleanValue }));
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -68,31 +90,43 @@ const AddProperty = () => {
     }
 
     setUploadingImage(true);
+    setError('');
 
     try {
-      // Use the utility function directly
-      const urls = await Promise.all(
-        files.map(file => uploadImageToCloudinary(file))
-      );
+      const uploadPromises = files.map(file => uploadImageToCloudinary(file));
+      const results = await Promise.allSettled(uploadPromises);
+
+      const successfulUrls = results
+        .filter(r => r.status === 'fulfilled')
+        .map(r => r.value);
+
+      if (successfulUrls.length === 0 && results.length > 0) {
+        throw new Error("Failed to upload images. Please check your connection.");
+      }
 
       setFormData(prev => {
-        const updated = [...prev.images, ...urls];
+        const updated = [...prev.images, ...successfulUrls];
         return {
           ...prev,
           images: updated,
-          // Set primary image if it's the first one uploaded
-          image: prev.image || updated[0]
+          image: prev.image || updated[0] // Set primary if none exists
         };
       });
 
-      setSuccess('Images uploaded successfully!');
-      setTimeout(() => setSuccess(''), 2500);
+      const failedCount = results.length - successfulUrls.length;
+      if (failedCount > 0) {
+        setError(`${successfulUrls.length} uploaded, but ${failedCount} failed.`);
+      } else {
+        setSuccess('Images uploaded successfully!');
+        setTimeout(() => setSuccess(''), 2500);
+      }
+
     } catch (err) {
       console.error(err);
-      setError('Image upload failed. Please try again.');
+      setError(err.message || 'Image upload failed. Please try again.');
     } finally {
       setUploadingImage(false);
-      e.target.value = ''; // Reset input
+      e.target.value = ''; // Reset input to allow re-uploading same file
     }
   };
 
@@ -127,7 +161,7 @@ const AddProperty = () => {
     setSuccess('');
     setLoading(true);
 
-    if (!formData.title || !formData.price || !formData.location) {
+    if (!formData.title.trim() || !formData.price || !formData.location.trim()) {
       setError("Please fill in all required fields (Title, Price, Location).");
       setLoading(false);
       return;
@@ -139,7 +173,7 @@ const AddProperty = () => {
       // Clean up price (remove commas if user added them)
       const cleanedData = {
         ...formData,
-        price: formData.price.toString().replace(/,/g, ''),
+        price: formData.price.toString().replace(/,/g, ''), // Ensure clean number string
         updatedAt: new Date().toISOString()
       };
 
@@ -155,11 +189,11 @@ const AddProperty = () => {
         setSuccess('Property added successfully!');
       }
 
+      // Small delay to allow success message to be seen
       setTimeout(() => navigate('/admin/dashboard'), 1500);
     } catch (err) {
       console.error(err);
       setError('Failed to save property. Please check your connection.');
-    } finally {
       setLoading(false);
     }
   };
@@ -178,7 +212,7 @@ const AddProperty = () => {
         <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 backdrop-blur-sm">
 
           <div className="mb-8">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-200 to-amber-500 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold bg-linear-to-r from-amber-200 to-amber-500 bg-clip-text text-transparent">
               {isEditMode ? 'Edit Property' : 'Add New Property'}
             </h1>
             <p className="text-white/60 mt-2">Fill in the details below to list a property.</p>
@@ -186,15 +220,15 @@ const AddProperty = () => {
 
           {error && (
             <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
-              <AlertCircle className="text-red-400 w-5 h-5 flex-shrink-0" />
-              <p className="text-red-400">{error}</p>
+              <AlertCircle className="text-red-400 w-5 h-5 shrink-0" />
+              <p className="text-red-400 font-medium">{error}</p>
             </div>
           )}
 
           {success && (
             <div className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
-              <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center text-black text-xs">✓</div>
-              <p className="text-green-400">{success}</p>
+              <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center text-black text-xs font-bold">✓</div>
+              <p className="text-green-400 font-medium">{success}</p>
             </div>
           )}
 
@@ -215,8 +249,9 @@ const AddProperty = () => {
                     value={formData.title}
                     onChange={handleChange}
                     placeholder="e.g. Luxury Villa in Palm Jumeirah"
-                    className="w-full bg-black/20 border border-white/10 rounded-xl p-3 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all"
+                    className="w-full bg-black/20 border border-white/10 rounded-xl p-3 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all font-medium"
                     required
+                    autoFocus
                   />
                 </div>
 
@@ -230,10 +265,11 @@ const AddProperty = () => {
                       value={formData.price}
                       onChange={handleChange}
                       placeholder="e.g. 2,50,00,000"
-                      className="w-full bg-black/20 border border-white/10 rounded-xl p-3 pl-10 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all"
+                      className="w-full bg-black/20 border border-white/10 rounded-xl p-3 pl-10 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all font-medium"
                       required
                     />
                   </div>
+                  <p className="text-xs text-white/30 pl-1">Enter numeric value (commas allowed)</p>
                 </div>
               </div>
 
@@ -331,30 +367,35 @@ const AddProperty = () => {
             {/* Section 3: Description */}
             <div className="space-y-4 pt-4 border-t border-white/5">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-white/80">Description</label>
+                <h3 className="text-lg font-semibold text-amber-500/80 mb-2">Description</h3>
                 <textarea
                   name="description"
                   value={formData.description}
                   onChange={handleChange}
-                  rows="4"
+                  rows="5"
                   placeholder="Describe the property features, amenities, and surroundings..."
-                  className="w-full bg-black/20 border border-white/10 rounded-xl p-3 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all resize-none"
+                  className="w-full bg-black/20 border border-white/10 rounded-xl p-3 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all resize-y min-h-[120px]"
                 />
               </div>
             </div>
 
-            {/* Section 4: Map */}
+            {/* Section 4: Map Integration */}
             <div className="space-y-4 pt-4 border-t border-white/5">
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="showOnMap"
-                    checked={formData.showOnMap}
-                    onChange={handleChange}
-                    className="w-5 h-5 rounded border-white/20 bg-black/20 text-amber-500 focus:ring-amber-500/50"
-                  />
-                  <span className="text-sm font-medium text-white/80">Show Map on Property Page</span>
+              <h3 className="text-lg font-semibold text-amber-500/80 flex items-center gap-2">
+                <MapPin className="w-4 h-4" /> Map Integration
+              </h3>
+
+              <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
+                <input
+                  type="checkbox"
+                  name="showOnMap"
+                  id="showOnMap"
+                  checked={formData.showOnMap}
+                  onChange={handleChange}
+                  className="w-5 h-5 rounded border-white/20 bg-black/20 text-amber-500 focus:ring-amber-500/50 cursor-pointer"
+                />
+                <label htmlFor="showOnMap" className="text-sm font-medium text-white/90 cursor-pointer select-none">
+                  Show Map on Property Page
                 </label>
               </div>
 
@@ -366,10 +407,12 @@ const AddProperty = () => {
                     name="mapLink"
                     value={formData.mapLink}
                     onChange={handleChange}
-                    placeholder='Paste the src URL from Google Maps Embed (e.g. https://www.google.com/maps/embed?...)'
-                    className="w-full bg-black/20 border border-white/10 rounded-xl p-3 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all text-xs text-white/60"
+                    placeholder='Paste Google Maps Embed Code or URL here...'
+                    className="w-full bg-black/20 border border-white/10 rounded-xl p-3 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all text-xs text-white/80 font-mono"
                   />
-                  <p className="text-xs text-white/40">Go to Google Maps {'>'} Share {'>'} Embed a map {'>'} Copy HTML {'>'} Extract the value inside src="..."</p>
+                  <p className="text-xs text-white/40">
+                    Tip: Go to Google Maps {'>'} Share {'>'} Embed a map {'>'} Copy HTML. Paste it here and we'll extract the link automatically.
+                  </p>
                 </div>
               )}
             </div>
@@ -384,7 +427,7 @@ const AddProperty = () => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {/* Upload Button */}
                 <div className="relative group aspect-square">
-                  <label className="absolute inset-0 flex flex-col items-center justify-center bg-white/5 border border-dashed border-white/20 rounded-xl hover:bg-white/10 hover:border-amber-500/50 transition-all cursor-pointer overflow-hidden">
+                  <label className={`absolute inset-0 flex flex-col items-center justify-center bg-white/5 border border-dashed ${uploadingImage ? 'border-amber-500/50 bg-amber-500/5' : 'border-white/20 hover:bg-white/10 hover:border-amber-500/50'} rounded-xl transition-all cursor-pointer overflow-hidden`}>
                     <input
                       type="file"
                       multiple
@@ -394,11 +437,14 @@ const AddProperty = () => {
                       disabled={uploadingImage}
                     />
                     {uploadingImage ? (
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+                        <span className="text-xs text-amber-500 animate-pulse">Uploading...</span>
+                      </div>
                     ) : (
                       <>
                         <Upload className="w-8 h-8 text-white/40 mb-2 group-hover:text-amber-500 transition-colors" />
-                        <span className="text-xs text-white/60 text-center px-2">Click to Upload Max 10</span>
+                        <span className="text-xs text-white/60 text-center px-2 group-hover:text-white transition-colors">Click to Upload Max 10</span>
                       </>
                     )}
                   </label>
@@ -411,13 +457,15 @@ const AddProperty = () => {
                       src={url}
                       alt={`Property ${index + 1}`}
                       className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                      onError={(e) => e.target.style.display = 'none'} // Fail gracefully
                     />
 
                     {/* Remove Button */}
                     <button
                       type="button"
                       onClick={() => handleRemoveImage(index)}
-                      className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all"
+                      className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
+                      title="Remove Image"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -431,7 +479,7 @@ const AddProperty = () => {
                       <button
                         type="button"
                         onClick={() => handleSetPrimary(url)}
-                        className="absolute bottom-2 left-2 px-2 py-1 bg-black/60 hover:bg-amber-500 hover:text-black text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-all"
+                        className="absolute bottom-2 left-2 px-2 py-1 bg-black/60 hover:bg-amber-500 hover:text-black text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
                       >
                         Set as Cover
                       </button>
@@ -449,7 +497,7 @@ const AddProperty = () => {
                 id="featured"
                 checked={formData.featured}
                 onChange={handleChange}
-                className="w-5 h-5 rounded border-white/20 bg-black/20 text-amber-500 focus:ring-amber-500/50"
+                className="w-5 h-5 rounded border-white/20 bg-black/20 text-amber-500 focus:ring-amber-500/50 cursor-pointer"
               />
               <label htmlFor="featured" className="text-white/90 font-medium select-none cursor-pointer">
                 Mark as Featured Property (Shows on Homepage)
@@ -461,7 +509,7 @@ const AddProperty = () => {
               <button
                 type="submit"
                 disabled={loading || uploadingImage}
-                className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-bold py-4 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transform transition-all hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-amber-500/20"
+                className="w-full bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-bold py-4 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transform transition-all hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-amber-500/20"
               >
                 {loading ? 'Saving Property...' : isEditMode ? 'Update Property' : 'Add Property Listing'}
               </button>

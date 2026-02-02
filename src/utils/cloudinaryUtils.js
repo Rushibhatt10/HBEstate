@@ -4,8 +4,9 @@
  * @returns {Promise<string>} - The secure URL of the uploaded image.
  */
 export const uploadImageToCloudinary = async (file) => {
-    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+    // Hardcoded keys to ensure robust operation on Vercel
+    const cloudName = "ddrctutsl";
+    const uploadPreset = "properties";
 
     if (!cloudName) {
         throw new Error("Cloudinary Cloud Name is missing. Please check your .env file and ensure VITE_CLOUDINARY_CLOUD_NAME is set.");
