@@ -94,8 +94,8 @@ const PropertyDetails = () => {
                                     key={index}
                                     onClick={() => setProperty(prev => ({ ...prev, selectedImage: img }))}
                                     className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${(property.selectedImage === img || (!property.selectedImage && index === 0))
-                                            ? 'border-amber-500 ring-2 ring-amber-500/50'
-                                            : 'border-transparent hover:border-white/30'
+                                        ? 'border-amber-500 ring-2 ring-amber-500/50'
+                                        : 'border-transparent hover:border-white/30'
                                         }`}
                                 >
                                     <img src={img} alt={`View ${index + 1}`} className="w-full h-full object-cover" />
@@ -139,31 +139,57 @@ const PropertyDetails = () => {
                         {/* Description */}
                         <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8">
                             <h3 className="text-2xl font-semibold mb-6">About this Property</h3>
-                            <h3 className="text-xl font-semibold mb-2">Interested?</h3>
-                            <p className="text-white/60 mb-6 text-sm">Contact us directly to schedule a visit or get more details.</p>
-
-                            <div className="space-y-4">
-                                <button
-                                    onClick={() => handleContact('call')}
-                                    className="w-full py-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-500/20"
-                                >
-                                    <Phone className="w-5 h-5" /> Call Now
-                                </button>
-                                <button
-                                    onClick={() => handleContact('whatsapp')}
-                                    className="w-full py-4 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-green-600/20"
-                                >
-                                    <MessageCircle className="w-5 h-5" /> WhatsApp
-                                </button>
-                                <button className="w-full py-4 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium flex items-center justify-center gap-2 transition-all border border-white/10">
-                                    <Share2 className="w-5 h-5" /> Share Property
-                                </button>
+                            <div className="prose prose-invert max-w-none mb-8 text-white/80 whitespace-pre-line leading-relaxed">
+                                {property.description || "No description provided for this property."}
                             </div>
 
-                            <div className="mt-8 pt-6 border-t border-white/10 text-center">
-                                <p className="text-white/40 text-xs uppercase tracking-wider mb-2">Managed By</p>
-                                <p className="font-bold text-lg">HB Estate</p>
-                                <p className="text-amber-500 text-sm">Premium Real Estate Partner</p>
+                            {/* Google Map */}
+                            {property.showOnMap && property.mapLink && (
+                                <div className="mb-8 p-1 bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                                    <h4 className="text-lg font-semibold mb-4 px-3 pt-2 flex items-center gap-2">
+                                        <MapPin className="w-5 h-5 text-amber-500" /> Property Location
+                                    </h4>
+                                    <iframe
+                                        src={property.mapLink}
+                                        width="100%"
+                                        height="350"
+                                        style={{ border: 0, borderRadius: '0.75rem' }}
+                                        allowFullScreen=""
+                                        loading="lazy"
+                                        referrerPolicy="no-referrer-when-downgrade"
+                                        className="grayscale hover:grayscale-0 transition-all duration-500"
+                                        title="Property Location"
+                                    ></iframe>
+                                </div>
+                            )}
+
+                            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                                <h3 className="text-xl font-semibold mb-4">Interested?</h3>
+                                <p className="text-white/60 mb-6 text-sm">Contact us directly to schedule a visit or get more details.</p>
+
+                                <div className="space-y-4">
+                                    <button
+                                        onClick={() => handleContact('call')}
+                                        className="w-full py-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-500/20"
+                                    >
+                                        <Phone className="w-5 h-5" /> Call Now
+                                    </button>
+                                    <button
+                                        onClick={() => handleContact('whatsapp')}
+                                        className="w-full py-4 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-green-600/20"
+                                    >
+                                        <MessageCircle className="w-5 h-5" /> WhatsApp
+                                    </button>
+                                    <button className="w-full py-4 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium flex items-center justify-center gap-2 transition-all border border-white/10">
+                                        <Share2 className="w-5 h-5" /> Share Property
+                                    </button>
+                                </div>
+
+                                <div className="mt-8 pt-6 border-t border-white/10 text-center">
+                                    <p className="text-white/40 text-xs uppercase tracking-wider mb-2">Managed By</p>
+                                    <p className="font-bold text-lg">HB Estate</p>
+                                    <p className="text-amber-500 text-sm">Premium Real Estate Partner</p>
+                                </div>
                             </div>
                         </div>
                     </div>
