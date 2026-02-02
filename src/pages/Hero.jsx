@@ -4,6 +4,16 @@ import { Link } from 'react-router-dom';
 
 const Hero = () => {
   const [isMobile, setIsMobile] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const mobileImages = [
+    '/mob.png',
+    '/mob2.jpeg',
+    '/mob3.jpg',
+    '/mob4.jpg',
+    '/mob5.png',
+    '/mob6.jpg'
+  ];
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -11,6 +21,15 @@ const Hero = () => {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  useEffect(() => {
+    if (isMobile) {
+      const interval = setInterval(() => {
+        setCurrentImageIndex((prev) => (prev + 1) % mobileImages.length);
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [isMobile]);
 
   return (
     <section id="home" className="relative w-full min-h-dvh overflow-hidden bg-black">
@@ -20,7 +39,7 @@ const Hero = () => {
           className="absolute inset-0 bg-cover bg-center transition-all duration-500"
           style={{
             backgroundImage: isMobile
-              ? `url('/mob.png')`
+              ? `url('${mobileImages[currentImageIndex]}')`
               : `url('/webp1.png')`,
           }}
         />
