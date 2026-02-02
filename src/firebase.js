@@ -6,13 +6,13 @@ import { getAuth } from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID,
-    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "your-api-key-here",
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "your-auth-domain-here",
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "hbestate-abcd8",
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "your-storage-bucket-here",
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "your-messaging-sender-id-here",
+    appId: import.meta.env.VITE_FIREBASE_APP_ID || "your-app-id-here",
+    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "your-measurement-id-here"
 };
 
 // Initialize Firebase
