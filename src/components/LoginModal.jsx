@@ -16,7 +16,7 @@ const LoginModal = ({ isOpen, onClose, message = "Please login to view property 
             await loginWithGoogle();
             onClose(); // Close modal on success
         } catch (err) {
-            setError('Failed to sign in. Please try again.');
+            setError(err.message || 'Failed to sign in. Please try again.');
             console.error(err);
         } finally {
             setLoading(false);

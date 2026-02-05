@@ -69,10 +69,21 @@ const Properties = () => {
   const [loading, setLoading] = useState(true);
   const { currentUser } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [pendingPropertyId, setPendingPropertyId] = useState(null);
   const navigate = useNavigate();
+
+  // Handle pending redirection after login
+  useEffect(() => {
+    if (currentUser && pendingPropertyId) {
+      navigate(`/property/${pendingPropertyId}`);
+      setPendingPropertyId(null);
+      setShowLoginModal(false);
+    }
+  }, [currentUser, pendingPropertyId, navigate]);
 
   const handleViewDetails = (propertyId) => {
     if (!currentUser) {
+      setPendingPropertyId(propertyId);
       setShowLoginModal(true);
     } else {
       navigate(`/property/${propertyId}`);

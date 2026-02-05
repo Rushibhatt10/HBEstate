@@ -99,7 +99,7 @@ const PropertyDetails = () => {
                         Login to View
                     </button>
                 </div>
-                <LoginModal isOpen={showLoginModal} onClose={() => { }} />
+                <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
                 <Footer />
             </div>
         );
