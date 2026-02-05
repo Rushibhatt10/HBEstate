@@ -60,12 +60,7 @@ const Navbar = () => {
                 </div>
 
                 {/* Contact Us Button (Desktop) - Glass Capsule */}
-                <button
-                    onClick={() => navigate('/contact')}
-                    className="hidden md:block backdrop-blur-md bg-white/10 border border-white/20 text-white px-6 py-2 rounded-full font-medium hover:bg-white/20 transition shadow-lg"
-                >
-                    Contact Us
-                </button>
+                
 
                 {/* Mobile Hamburger Menu */}
                 <button
@@ -96,15 +91,6 @@ const Navbar = () => {
                         <Link to="/properties" className="hover:text-amber-500 cursor-pointer transition" onClick={() => setIsMobileMenuOpen(false)}>Properties</Link>
                         <Link to="/contact" className="hover:text-amber-500 cursor-pointer transition" onClick={() => setIsMobileMenuOpen(false)}>Contact</Link>
                     </ul>
-                    <button
-                        className="mt-10 backdrop-blur-md bg-white/10 border border-white/20 text-white px-8 py-3 rounded-full font-medium hover:bg-white/20 transition shadow-lg"
-                        onClick={() => {
-                            navigate('/contact');
-                            setIsMobileMenuOpen(false);
-                        }}
-                    >
-                        Contact Us
-                    </button>
                 </div>
             )}
         </nav>

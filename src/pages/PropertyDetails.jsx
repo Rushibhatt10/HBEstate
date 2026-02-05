@@ -5,14 +5,19 @@ import {
     ArrowLeft, MapPin, BedDouble, Square, Phone,
     MessageCircle, Check, Calendar, Share2
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import LoginModal from '../components/LoginModal';
+import { logPropertyView } from '../utils/trackingUtils';
 
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
 const PropertyDetails = () => {
     const { id } = useParams();
+    const { currentUser, loading: authLoading } = useAuth();
     const [property, setProperty] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [showLoginModal, setShowLoginModal] = useState(false);
 
     useEffect(() => {
         const fetchProperty = async () => {
@@ -28,6 +33,20 @@ const PropertyDetails = () => {
         fetchProperty();
     }, [id]);
 
+    // Enforce Login
+    useEffect(() => {
+        if (!authLoading && !currentUser) {
+            setShowLoginModal(true);
+        }
+    }, [authLoading, currentUser]);
+
+    // Track View
+    useEffect(() => {
+        if (currentUser && property) {
+            logPropertyView(currentUser, id, property.title);
+        }
+    }, [currentUser, property, id]);
+
     const handleContact = (type) => {
         const message = `Hi, I'm interested in ${property.title} located at ${property.location}. Please provide more details.`;
         if (type === 'whatsapp') {
@@ -37,10 +56,51 @@ const PropertyDetails = () => {
         }
     };
 
-    if (loading) {
+    const handleShare = async () => {
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: property.title,
+                    text: `Check out this property: ${property.title}`,
+                    url: window.location.href,
+                });
+            } catch (error) {
+                console.log('Error sharing', error);
+            }
+        } else {
+            try {
+                await navigator.clipboard.writeText(window.location.href);
+                alert('Link copied to clipboard!');
+            } catch (err) {
+                console.error('Failed to copy', err);
+            }
+        }
+    };
+
+    if (loading || authLoading) {
         return (
             <div className="min-h-screen bg-[#0a1628] flex items-center justify-center">
                 <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        );
+    }
+
+    if (!currentUser) {
+        return (
+            <div className="min-h-screen bg-[#0a1628]">
+                <Navbar />
+                <div className="pt-36 flex flex-col items-center justify-center min-h-[50vh] text-white px-4 text-center">
+                    <h2 className="text-2xl font-semibold mb-4 text-white/80">Login Required</h2>
+                    <p className="text-white/60 mb-6">Please login to view exclusive property details.</p>
+                    <button
+                        onClick={() => setShowLoginModal(true)}
+                        className="px-6 py-3 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition-colors"
+                    >
+                        Login to View
+                    </button>
+                </div>
+                <LoginModal isOpen={showLoginModal} onClose={() => { }} />
+                <Footer />
             </div>
         );
     }
@@ -144,13 +204,17 @@ const PropertyDetails = () => {
                             </div>
 
                             {/* Google Map */}
-                            {property.showOnMap && property.mapLink && (
+                            {property.showOnMap && (
                                 <div className="mb-8 p-1 bg-white/5 border border-white/10 rounded-xl overflow-hidden">
                                     <h4 className="text-lg font-semibold mb-4 px-3 pt-2 flex items-center gap-2">
                                         <MapPin className="w-5 h-5 text-amber-500" /> Property Location
                                     </h4>
                                     <iframe
-                                        src={property.mapLink}
+                                        src={
+                                            property.mapLink && property.mapLink.includes('embed')
+                                                ? property.mapLink
+                                                : `https://maps.google.com/maps?q=${encodeURIComponent(property.location)}&t=&z=13&ie=UTF8&iwloc=&output=embed`
+                                        }
                                         width="100%"
                                         height="350"
                                         style={{ border: 0, borderRadius: '0.75rem' }}
@@ -180,7 +244,10 @@ const PropertyDetails = () => {
                                     >
                                         <MessageCircle className="w-5 h-5" /> WhatsApp
                                     </button>
-                                    <button className="w-full py-4 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium flex items-center justify-center gap-2 transition-all border border-white/10">
+                                    <button
+                                        onClick={handleShare}
+                                        className="w-full py-4 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium flex items-center justify-center gap-2 transition-all border border-white/10"
+                                    >
                                         <Share2 className="w-5 h-5" /> Share Property
                                     </button>
                                 </div>

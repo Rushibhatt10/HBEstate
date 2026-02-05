@@ -66,6 +66,13 @@ const Dashboard = () => {
                             <Mail className="w-5 h-5" />
                         </Link>
                         <Link
+                            to="/admin/user-activity"
+                            className="bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl flex items-center justify-center gap-2 transition-all"
+                            title="User Activity"
+                        >
+                            <Eye className="w-5 h-5" />
+                        </Link>
+                        <Link
                             to="/admin/add-property"
                             className="flex-1 md:flex-none bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 transition-all font-medium shadow-lg shadow-amber-500/20"
                         >

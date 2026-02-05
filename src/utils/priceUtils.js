@@ -1,33 +1,45 @@
 /**
- * Parses a price string (e.g., "₹ 1.5 Cr", "₹ 85 L") into a numeric value in Crores.
- * Returns 0 if parsing fails.
- * 
+ * Parses a price string (e.g., "INR 1.5 Cr", "Rs 85 L") into a numeric value in Crores.
+ * Returns NaN if parsing fails.
+ *
  * Examples:
  * "1.5 Cr" -> 1.5
  * "85 L" -> 0.85
- * "₹ 2.5 Cr" -> 2.5
+ * "INR 2.5 Cr" -> 2.5
  */
 export const parsePrice = (priceStr) => {
-    if (!priceStr || typeof priceStr !== 'string') return 0;
+    if (typeof priceStr === 'number') return priceStr;
+    if (!priceStr || typeof priceStr !== 'string') return Number.NaN;
 
-    // Remove currency symbol and whitespace
-    const cleanStr = priceStr.replace(/[₹,]/g, '').trim().toLowerCase();
+    const cleanStr = priceStr
+        .replace(/\u20B9/g, ' ')
+        .replace(/rs\.?/gi, ' ')
+        .replace(/inr/gi, ' ')
+        .replace(/,/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
 
-    // Extract numeric part
     const match = cleanStr.match(/([\d.]+)/);
-    if (!match) return 0;
+    if (!match) return Number.NaN;
 
-    let value = parseFloat(match[0]);
+    const value = parseFloat(match[0]);
+    if (!Number.isFinite(value)) return Number.NaN;
 
-    // Convert based on unit
-    if (cleanStr.includes('cr')) {
+    const unitMatch = cleanStr.match(/(?:\d|\.)\s*(cr|crore|crores|l|lac|lakh|lakhs|k)\b/);
+    const unit = unitMatch?.[1];
+
+    if (unit === 'cr' || unit === 'crore' || unit === 'crores') {
         return value;
-    } else if (cleanStr.includes('l') || cleanStr.includes('lac') || cleanStr.includes('lakh')) {
-        return value / 100;
-    } else if (cleanStr.includes('k')) {
-        return value / 10000; // Assuming k is thousands, converting to Cr (very small)
     }
 
-    // Default fallback (assume Cr if no unit, or handle as raw number)
+    if (unit === 'l' || unit === 'lac' || unit === 'lakh' || unit === 'lakhs') {
+        return value / 100;
+    }
+
+    if (unit === 'k') {
+        return value / 10000;
+    }
+
     return value;
 };
